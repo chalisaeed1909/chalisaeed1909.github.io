@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Luminary — Image Gallery</title>
+  <style>
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300&family=DM+Mono:wght@300;400&display=swap');
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #0d0d0e;
+  --surface: #161618;
+  --border: rgba(255,255,255,0.07);
+  --text: #e8e6e0;
+  --muted: rgba(232,230,224,0.4);
+  --accent: #c9a96e;
+  --accent-dim: rgba(201,169,110,0.15);
+  --pill-bg: rgba(255,255,255,0.06);
+  --pill-active: rgba(201,169,110,0.2);
+}
+
+body {
+  font-family: 'DM Mono', monospace;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  padding: 0;
+}
+
+header {
+  padding: 2.5rem 3rem 1.5rem;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1.5rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.header-left {
+  display: flex;
+  align-items: baseline;
+  gap: 1.5rem;
+}
+
+.portfolio-link {
+  font-size: 0.65rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 0.35rem 0.9rem;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.portfolio-link:hover {
+  color: var(--accent);
+  border-color: rgba(201,169,110,0.35);
+}
+
+.wordmark {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 2rem;
+  font-weight: 300;
+  letter-spacing: 0.1em;
+  color: var(--accent);
+}
+
+.tagline {
+  font-size: 0.65rem;
+  letter-spacing: 0.15em;
+  color: var(--muted);
+  text-transform: uppercase;
+}
+
+.controls {
+  padding: 1.5rem 3rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.filter-pill {
+  padding: 0.35rem 0.9rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  font-family: 'DM Mono', monospace;
+  font-size: 0.65rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  background: var(--pill-bg);
+  color: var(--muted);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.filter-pill:hover { border-color: var(--accent); color: var(--accent); }
+.filter-pill.active { background: var(--pill-active); border-color: var(--accent); color: var(--accent); }
+
+.count {
+  margin-left: auto;
+  font-size: 0.65rem;
+  letter-spacing: 0.1em;
+  color: var(--muted);
+}
+
+.gallery-grid {
+  padding: 1rem 3rem 4rem;
+  columns: 4 250px;
+  column-gap: 1rem;
+}
+
+.gallery-item {
+  break-inside: avoid;
+  margin-bottom: 1rem;
+  position: relative;
+  overflow: hidden;
+  border-radius: 3px;
+  cursor: pointer;
+  border: 1px solid var(--border);
+  transition: transform 0.3s ease, border-color 0.3s ease;
+}
+.gallery-item:hover { transform: translateY(-3px); border-color: rgba(201,169,110,0.3); }
+.gallery-item:hover .item-overlay { opacity: 1; }
+.gallery-item:hover .item-img { transform: scale(1.04); }
+.gallery-item.hidden { display: none; }
+
+.item-img {
+  display: block;
+  width: 100%;
+  height: auto;
+  object-fit: cover;
+  transition: transform 0.5s ease, opacity 0.4s ease;
+  background: var(--surface);
+  min-height: 120px;
+}
+
+.item-img[loading] {
+  opacity: 0.6;
+}
+
+.item-overlay {
+  position: absolute; inset: 0;
+  background: linear-gradient(to top, rgba(0,0,0,0.7) 0%, transparent 60%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding: 1rem;
+}
+
+.item-title {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 0.95rem;
+  font-weight: 300;
+  color: #fff;
+  letter-spacing: 0.05em;
+}
+
+.item-cat {
+  font-size: 0.55rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-top: 2px;
+}
+
+.item-filter-tag {
+  position: absolute;
+  top: 0.6rem; right: 0.6rem;
+  background: rgba(0,0,0,0.6);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 0.2rem 0.6rem;
+  font-size: 0.55rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--accent);
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+.gallery-item:hover .item-filter-tag { opacity: 1; }
+
+/* Lightbox */
+.lightbox {
+  position: fixed; inset: 0;
+  z-index: 100;
+  background: rgba(0,0,0,0.92);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.35s ease;
+  backdrop-filter: blur(6px);
+}
+.lightbox.open { opacity: 1; pointer-events: all; }
+
+.lb-inner {
+  display: flex;
+  align-items: center;
+  gap: 2rem;
+  max-width: 95vw;
+  max-height: 95vh;
+}
+
+.lb-img-wrap {
+  position: relative;
+  max-height: 85vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.lb-img {
+  max-width: 70vw;
+  max-height: 82vh;
+  object-fit: contain;
+  border-radius: 2px;
+  display: block;
+  box-shadow: 0 0 80px rgba(0,0,0,0.8);
+  transition: opacity 0.25s ease;
+}
+.lb-img.fading { opacity: 0; }
+
+.lb-info {
+  width: 200px;
+  flex-shrink: 0;
+  padding-right: 1rem;
+}
+
+.lb-title {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1.6rem;
+  font-weight: 300;
+  line-height: 1.2;
+  margin-bottom: 0.5rem;
+}
+
+.lb-cat {
+  font-size: 0.6rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 1rem;
+}
+
+.lb-desc {
+  font-size: 0.7rem;
+  color: var(--muted);
+  line-height: 1.7;
+}
+
+.lb-counter {
+  font-size: 0.6rem;
+  letter-spacing: 0.15em;
+  color: var(--muted);
+  margin-top: 1.5rem;
+}
+
+.lb-btn {
+  background: none;
+  border: 1px solid rgba(255,255,255,0.15);
+  color: var(--text);
+  width: 44px; height: 44px;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 1.2rem;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+  transition: all 0.2s ease;
+}
+.lb-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+.lb-close {
+  position: fixed;
+  top: 1.5rem; right: 1.5rem;
+  background: none;
+  border: 1px solid rgba(255,255,255,0.15);
+  color: var(--text);
+  width: 38px; height: 38px;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 1rem;
+  display: flex; align-items: center; justify-content: center;
+  transition: all 0.2s ease;
+  z-index: 101;
+}
+.lb-close:hover { border-color: var(--accent); color: var(--accent); }
+
+.lb-thumbnails {
+  position: fixed;
+  bottom: 1.5rem; left: 50%; transform: translateX(-50%);
+  display: flex; gap: 6px;
+  z-index: 101;
+}
+
+.lb-thumb {
+  width: 44px; height: 44px;
+  object-fit: cover;
+  border-radius: 2px;
+  opacity: 0.4;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+.lb-thumb.active { opacity: 1; border-color: var(--accent); }
+.lb-thumb:hover { opacity: 0.8; }
+
+.item-google-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 6px;
+  font-size: 0.6rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.6);
+  text-decoration: none;
+  border: 1px solid rgba(255,255,255,0.2);
+  border-radius: 999px;
+  padding: 0.22rem 0.65rem;
+  width: fit-content;
+  transition: all 0.2s ease;
+}
+.item-google-link:hover { color: var(--accent); border-color: var(--accent); }
+
+.lb-google-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 1.2rem;
+  font-size: 0.6rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+  text-decoration: none;
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 999px;
+  padding: 0.3rem 0.8rem;
+  transition: all 0.2s ease;
+}
+.lb-google-link:hover { color: var(--accent); border-color: var(--accent); }
+
+/* Responsive */
+@media (max-width: 900px) {
+  header { padding: 1.5rem; }
+  .controls { padding: 1rem 1.5rem; }
+  .gallery-grid { padding: 1rem 1.5rem 3rem; columns: 2 180px; }
+  .lb-info { display: none; }
+  .lb-img { max-width: 90vw; }
+}
+
+@media (max-width: 500px) {
+  .gallery-grid { columns: 2 120px; column-gap: 0.5rem; }
+  .filter-pill { font-size: 0.6rem; padding: 0.3rem 0.7rem; }
+  .lb-thumbnails { display: none; }
+}
+
+</style>
+</head>
+
+<body>
+
+  <header>
+    <div class="header-left">
+      <span class="wordmark">Luminary</span>
+      <span class="tagline">A curated collection</span>
+    </div>
+    <a href="javascript:history.back()" onclick="window.history.length>1?history.back():window.location.href='portfolio.html'" class="portfolio-link">← Portfolio</a>
+  </header>
+
+  <div class="controls">
+    <button class="filter-pill active" data-filter="all">All</button>
+    <button class="filter-pill" data-filter="architecture">Architecture</button>
+    <button class="filter-pill" data-filter="nature">Nature</button>
+    <button class="filter-pill" data-filter="portrait">Portrait</button>
+    <button class="filter-pill" data-filter="abstract">Abstract</button>
+    <span class="count" id="count">12 works</span>
+  </div>
+
+  <div class="gallery-grid" id="gallery"></div>
+
+  <!-- Lightbox -->
+  <div class="lightbox" id="lightbox" role="dialog" aria-modal="true" aria-label="Image viewer">
+    <button class="lb-close" id="lb-close" aria-label="Close">✕</button>
+    <div class="lb-inner">
+      <div class="lb-info">
+        <div class="lb-cat" id="lb-cat"></div>
+        <div class="lb-title" id="lb-title"></div>
+        <div class="lb-desc" id="lb-desc"></div>
+        <div class="lb-counter" id="lb-counter"></div>
+        <a class="lb-google-link" id="lb-google-link" href="#" target="_blank" rel="noopener">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+            stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="11" cy="11" r="8" />
+            <line x1="21" y1="21" x2="16.65" y2="16.65" />
+          </svg>
+          Search on Google Images
+        </a>
+      </div>
+      <button class="lb-btn" id="lb-prev" aria-label="Previous">‹</button>
+      <div class="lb-img-wrap">
+        <img class="lb-img" id="lb-img" src="" alt="" />
+      </div>
+      <button class="lb-btn" id="lb-next" aria-label="Next">›</button>
+    </div>
+    <div class="lb-thumbnails" id="lb-thumbs"></div>
+  </div>
+
+  <script>
+const PHOTOS = [
+  { id: 1,  cat: 'architecture', title: 'Brutalist Echo',     desc: 'Repetition and raw concrete — a study in mass and void.',       photo: '1486406146926-c627a92ad1ab', w: 600, h: 750, search: 'brutalist concrete architecture' },
+  { id: 2,  cat: 'nature',       title: 'Fog at Dawn',        desc: 'The valley floor disappears into early morning mist.',          photo: '1470071459604-3b5ec3a7fe05', w: 600, h: 800, search: 'fog dawn valley mist nature' },
+  { id: 3,  cat: 'portrait',     title: 'In Passing',         desc: 'A still moment caught between two thoughts.',                   photo: '1534528741775-53994a69daeb', w: 600, h: 600, search: 'portrait photography person face' },
+  { id: 4,  cat: 'abstract',     title: 'Chromatic Tension',  desc: 'Color fields pushed to their boundaries.',                      photo: '1558618666-fcd25c85cd64', w: 600, h: 400, search: 'abstract color art photography' },
+  { id: 5,  cat: 'architecture', title: 'Grid Logic',         desc: 'A window grid dissolves into reflection.',                      photo: '1497366216548-37526070297c', w: 600, h: 900, search: 'glass windows building reflection architecture' },
+  { id: 6,  cat: 'nature',       title: 'Salt Flat, Noon',    desc: 'Horizon blurs where ground meets sky.',                         photo: '1500530855697-b586d89ba3ee', w: 800, h: 450, search: 'salt flat desert horizon landscape' },
+  { id: 7,  cat: 'abstract',     title: 'Thermal Study III',  desc: 'Infrared frequencies rendered as pigment.',                     photo: '1618005182384-a83a8bd57fbe', w: 600, h: 600, search: 'infrared abstract texture photography' },
+  { id: 8,  cat: 'portrait',     title: 'The Archivist',      desc: 'Surrounded by accumulated memory.',                             photo: '1507003211169-0a1dd7228f2d', w: 600, h: 800, search: 'person library books portrait photography' },
+  { id: 9,  cat: 'nature',       title: 'Canopy, Late Light', desc: 'The forest ceiling lit from below at dusk.',                    photo: '1441974231531-c6227db76b6e', w: 600, h: 900, search: 'forest canopy light trees nature' },
+  { id: 10, cat: 'architecture', title: 'Vault No.7',         desc: 'Ribbed vaulting in a decommissioned exchange.',                 photo: '1503387762-592deb58ef4e', w: 600, h: 800, search: 'vault arch interior ceiling architecture' },
+  { id: 11, cat: 'abstract',     title: 'Residue',            desc: 'What remains when the subject leaves the frame.',               photo: '1469474968028-56623f02e42e', w: 700, h: 525, search: 'abstract minimal texture dark photography' },
+  { id: 12, cat: 'portrait',     title: 'Dusk, Unposed',      desc: 'Natural light. No direction. Just presence.',                   photo: '1517841905240-472988babdf9', w: 600, h: 800, search: 'portrait golden hour natural light photography' },
+];
+
+function photoUrl(p, scale = 1) {
+  return `https://images.unsplash.com/photo-${p.photo}?auto=format&fit=crop&w=${Math.round(p.w * scale)}&h=${Math.round(p.h * scale)}&q=80`;
+}
+
+function thumbUrl(p) {
+  return `https://images.unsplash.com/photo-${p.photo}?auto=format&fit=crop&w=88&h=88&q=70`;
+}
+
+const gallery = document.getElementById('gallery');
+let current = 0;
+let filtered = [...PHOTOS];
+
+function googleSearchURL(query) {
+  return 'https://www.google.com/search?tbm=isch&q=' + encodeURIComponent(query);
+}
+
+function buildGallery(items) {
+  gallery.innerHTML = '';
+  items.forEach((p, idx) => {
+    const div = document.createElement('div');
+    div.className = 'gallery-item';
+    div.dataset.idx = idx;
+    div.innerHTML = `
+      <img class="item-img" src="${photoUrl(p)}" alt="${p.title}" loading="lazy" style="aspect-ratio: ${p.w} / ${p.h}">
+      <div class="item-filter-tag">${p.cat}</div>
+      <div class="item-overlay">
+        <div class="item-title">${p.title}</div>
+        <div class="item-cat">${p.cat}</div>
+        <a class="item-google-link" href="${googleSearchURL(p.search)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          More on Google
+        </a>
+      </div>`;
+    div.addEventListener('click', () => openLightbox(idx));
+    gallery.appendChild(div);
+  });
+  document.getElementById('count').textContent = `${items.length} work${items.length !== 1 ? 's' : ''}`;
+}
+
+// Filters
+document.querySelectorAll('.filter-pill').forEach(pill => {
+  pill.addEventListener('click', () => {
+    document.querySelectorAll('.filter-pill').forEach(p => p.classList.remove('active'));
+    pill.classList.add('active');
+    const f = pill.dataset.filter;
+    filtered = f === 'all' ? [...PHOTOS] : PHOTOS.filter(p => p.cat === f);
+    buildGallery(filtered);
+  });
+});
+
+// Lightbox elements
+const lb = document.getElementById('lightbox');
+const lbImg = document.getElementById('lb-img');
+const lbTitle = document.getElementById('lb-title');
+const lbCat = document.getElementById('lb-cat');
+const lbDesc = document.getElementById('lb-desc');
+const lbCounter = document.getElementById('lb-counter');
+const lbThumbs = document.getElementById('lb-thumbs');
+const lbGoogleLink = document.getElementById('lb-google-link');
+
+function buildThumbs() {
+  lbThumbs.innerHTML = '';
+  filtered.forEach((p, i) => {
+    const img = document.createElement('img');
+    img.className = 'lb-thumb' + (i === current ? ' active' : '');
+    img.src = thumbUrl(p);
+    img.alt = p.title;
+    img.addEventListener('click', () => goTo(i));
+    lbThumbs.appendChild(img);
+  });
+}
+
+function goTo(idx) {
+  lbImg.classList.add('fading');
+  setTimeout(() => {
+    current = (idx + filtered.length) % filtered.length;
+    const p = filtered[current];
+    lbImg.src = photoUrl(p, 2);
+    lbImg.alt = p.title;
+    lbTitle.textContent = p.title;
+    lbCat.textContent = p.cat;
+    lbDesc.textContent = p.desc;
+    lbCounter.textContent = `${current + 1} / ${filtered.length}`;
+    lbGoogleLink.href = googleSearchURL(p.search);
+    lbImg.classList.remove('fading');
+    document.querySelectorAll('.lb-thumb').forEach((t, i) => t.classList.toggle('active', i === current));
+  }, 150);
+}
+
+function openLightbox(idx) {
+  current = idx;
+  buildThumbs();
+  goTo(idx);
+  lb.classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeLightbox() {
+  lb.classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+document.getElementById('lb-close').addEventListener('click', closeLightbox);
+document.getElementById('lb-prev').addEventListener('click', () => goTo(current - 1));
+document.getElementById('lb-next').addEventListener('click', () => goTo(current + 1));
+
+lb.addEventListener('click', e => { if (e.target === lb) closeLightbox(); });
+
+document.addEventListener('keydown', e => {
+  if (!lb.classList.contains('open')) return;
+  if (e.key === 'Escape') closeLightbox();
+  if (e.key === 'ArrowRight') goTo(current + 1);
+  if (e.key === 'ArrowLeft') goTo(current - 1);
+});
+
+// Touch swipe
+let touchStartX = 0;
+lb.addEventListener('touchstart', e => { touchStartX = e.changedTouches[0].clientX; });
+lb.addEventListener('touchend', e => {
+  const dx = e.changedTouches[0].clientX - touchStartX;
+  if (Math.abs(dx) > 50) goTo(dx < 0 ? current + 1 : current - 1);
+});
+
+buildGallery(PHOTOS);
+
+</script>
+</body>
+
+</html>
